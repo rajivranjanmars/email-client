@@ -1,0 +1,8 @@
+# PostgreSQL Virtual Domain Lookup - Template
+# Copy this file to pgsql-virtual-mailbox-domains.cf and update with your database credentials
+
+user = YOUR_DB_USER
+password = YOUR_DB_PASSWORD  
+hosts = YOUR_DB_HOST
+dbname = YOUR_DB_NAME
+query = SELECT domain_name FROM domains WHERE domain_name='%s' AND status='active'

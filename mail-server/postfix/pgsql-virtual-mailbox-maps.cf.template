@@ -1,0 +1,8 @@
+# PostgreSQL Virtual Mailbox Maps - Completely Generic
+# This file contains NO hardcoded email addresses
+
+user = emailuser
+password = emailpass
+hosts = postgres
+dbname = emaildb
+query = SELECT CONCAT(domains.domain_name, '/', email_accounts.email_address, '/') FROM email_accounts INNER JOIN domains ON email_accounts.domain_id = domains.id WHERE email_accounts.email_address='%s' AND email_accounts.is_active=true AND domains.status='active'

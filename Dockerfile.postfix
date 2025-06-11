@@ -1,0 +1,74 @@
+# Custom Postfix Dockerfile with PostgreSQL support
+FROM ubuntu:22.04
+
+# Install required packages
+RUN apt-get update && apt-get install -y \
+    postfix \
+    postfix-pgsql \
+    rsyslog \
+    supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create necessary directories
+RUN mkdir -p /var/log/supervisor /etc/postfix/custom
+
+# Copy configuration files
+COPY mail-server/postfix/ /etc/postfix/custom/
+
+# Set up Postfix configuration
+RUN postconf -e "virtual_mailbox_domains = pgsql:/etc/postfix/custom/pgsql-virtual-mailbox-domains.cf" && \
+    postconf -e "virtual_mailbox_maps = pgsql:/etc/postfix/custom/pgsql-virtual-mailbox-maps.cf" && \
+    postconf -e "virtual_alias_maps = pgsql:/etc/postfix/custom/pgsql-virtual-alias-maps.cf" && \
+    postconf -e "virtual_transport = lmtp:inet:dovecot:31024" && \
+    postconf -e "virtual_uid_maps = static:5000" && \
+    postconf -e "virtual_gid_maps = static:5000" && \
+    postconf -e "virtual_mailbox_base = /var/mail/vhosts" && \
+    postconf -e "myhostname = mail-server" && \
+    postconf -e "mydomain = \$myhostname" && \
+    postconf -e "myorigin = \$mydomain" && \
+    postconf -e "mydestination = localhost" && \
+    postconf -e "inet_interfaces = all" && \
+    postconf -e "inet_protocols = ipv4" && \
+    postconf -e "mynetworks = 172.0.0.0/8 192.168.0.0/16 10.0.0.0/8 127.0.0.0/8" && \
+    postconf -e "smtpd_banner = \$myhostname ESMTP" && \
+    postconf -e "smtp_tls_security_level = may" && \
+    postconf -e "smtpd_tls_security_level = may" && \
+    postconf -e "smtpd_tls_auth_only = no" && \
+    postconf -e "smtpd_recipient_restrictions = permit_mynetworks, reject_non_fqdn_recipient, reject_unknown_recipient_domain, reject_unauth_destination" && \
+    postconf -e "message_size_limit = 52428800" && \
+    postconf -e "mailbox_size_limit = 1073741824"
+
+# Copy custom master.cf (SASL-free configuration)
+COPY mail-server/postfix/master.cf /etc/postfix/master.cf
+
+# Create supervisor configuration
+RUN echo '[supervisord]' > /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'nodaemon=true' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo '' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo '[program:rsyslog]' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'command=/usr/sbin/rsyslogd -n' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'autostart=true' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'autorestart=true' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'priority=1' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo '' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo '[program:postfix]' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'command=/usr/sbin/postfix start-fg' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'autostart=true' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'autorestart=true' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'priority=2' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'stderr_logfile=/var/log/postfix.err.log' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'stdout_logfile=/var/log/postfix.out.log' >> /etc/supervisor/conf.d/supervisord.conf
+
+# Create mail directories
+RUN mkdir -p /var/mail/vhosts && \
+    chown -R 5000:5000 /var/mail/vhosts
+
+# Expose SMTP ports
+EXPOSE 25 587
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD postfix status || exit 1
+
+# Start supervisor
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

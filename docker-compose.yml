@@ -1,0 +1,120 @@
+# Modern Docker Compose format (no version field needed)
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=emaildb
+      - POSTGRES_USER=emailuser
+      - POSTGRES_PASSWORD=emailpass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - email-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U emailuser -d emaildb"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Redis for caching and sessions
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    networks:
+      - email-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Postfix SMTP Server with PostgreSQL support
+  postfix:
+    build:
+      context: .
+      dockerfile: Dockerfile.postfix
+    volumes:
+      - ./mail-server/postfix:/etc/postfix/custom
+      - mail_data:/var/mail
+    ports:
+      - "25:25"
+      - "587:587"
+    networks:
+      - email-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Dovecot IMAP/POP3 Server - configured per official docker documentation
+  dovecot:
+    image: dovecot/dovecot:latest
+    volumes:
+      - ./mail-server/dovecot/dovecot.conf:/etc/dovecot/dovecot.conf
+      - ./mail-server/dovecot/dovecot-sql.conf.ext:/etc/dovecot/dovecot-sql.conf.ext
+      # - ./mail-server/dovecot/auth-sql.conf:/etc/dovecot/conf.d/auth-sql.conf  # Temporarily disabled - conflicts with main config
+      - ./mail-server/dovecot/users:/etc/dovecot/users
+      - ./mail-server/dovecot/ssl:/etc/ssl/certs  # SSL certificates mapped to standard location
+      - ./mail-server/dovecot/ssl:/etc/ssl/private  # SSL certificates mapped to standard location
+      - mail_data:/srv/vmail  # Official documentation uses /srv/vmail
+    ports:
+      - "143:143"      # IMAP (standard port)
+      - "993:993"      # IMAP TLS (standard port) 
+      - "110:110"      # POP3 (standard port)
+      - "995:995"      # POP3 TLS (standard port)
+      - "31024:31024"  # LMTP (custom port for Postfix)
+      - "8080:8080"    # HTTP API (official port)
+      - "9090:9090"    # Metrics (official port)
+    networks:
+      - email-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"  # Disable restart to prevent network reset issues
+
+  # OpenDKIM for email signing
+  opendkim:
+    image: instrumentisto/opendkim:latest
+    volumes:
+      - ./mail-server/opendkim:/etc/opendkim
+    networks:
+      - email-network
+    restart: unless-stopped
+
+  # Bun + Hono API Server
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://emailuser:emailpass@postgres:5432/emaildb
+      - REDIS_URL=redis://redis:6379
+      - PORT=3000
+    ports:
+      - "3000:3000"  # Direct API access without nginx
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - email-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  email-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  mail_data:

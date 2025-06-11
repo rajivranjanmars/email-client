@@ -1,0 +1,56 @@
+# Postfix Main Configuration - Generic Multi-Domain Setup
+# No hardcoded domain values - completely dynamic
+
+# Basic Settings
+myhostname = mail-server
+mydomain = $myhostname
+myorigin = $mydomain
+mydestination = localhost
+
+# Network Configuration
+inet_interfaces = all
+inet_protocols = ipv4
+mynetworks = 172.0.0.0/8 192.168.0.0/16 10.0.0.0/8 127.0.0.0/8
+
+# Virtual Domain Configuration (Dynamic)
+virtual_mailbox_domains = pgsql:/etc/postfix/custom/pgsql-virtual-mailbox-domains.cf
+virtual_mailbox_maps = pgsql:/etc/postfix/custom/pgsql-virtual-mailbox-maps.cf
+# virtual_alias_maps = pgsql:/etc/postfix/custom/pgsql-virtual-alias-maps.cf
+virtual_transport = lmtp:inet:dovecot:31024
+virtual_uid_maps = static:5000
+virtual_gid_maps = static:5000
+virtual_mailbox_base = /var/mail/vhosts
+
+# SMTP Settings
+smtpd_banner = $myhostname ESMTP
+smtp_tls_security_level = may
+smtpd_tls_security_level = may
+smtpd_tls_auth_only = no
+smtpd_tls_cert_file = /etc/ssl/certs/ssl-cert-snakeoil.pem
+smtpd_tls_key_file = /etc/ssl/private/ssl-cert-snakeoil.key
+
+# SASL Authentication (Disabled for internal network)
+# smtpd_sasl_type = dovecot
+# smtpd_sasl_path = private/auth
+# smtpd_sasl_auth_enable = yes
+# smtpd_sasl_security_options = noanonymous
+# smtpd_sasl_local_domain = $myhostname
+
+# Restrictions (Anti-Spam) - Simplified for internal use
+smtpd_helo_restrictions = permit_mynetworks, reject_invalid_helo_hostname, reject_non_fqdn_helo_hostname
+smtpd_sender_restrictions = permit_mynetworks, reject_non_fqdn_sender, reject_unknown_sender_domain
+smtpd_recipient_restrictions = permit_mynetworks, reject_non_fqdn_recipient, reject_unknown_recipient_domain, reject_unauth_destination
+
+# Message Size Limits
+message_size_limit = 52428800
+mailbox_size_limit = 1073741824
+
+# OpenDKIM Integration
+milter_protocol = 2
+milter_default_action = accept
+smtpd_milters = inet:opendkim:8891
+non_smtpd_milters = inet:opendkim:8891
+
+# Queue Settings
+maximal_queue_lifetime = 7d
+bounce_queue_lifetime = 7d

@@ -1,0 +1,16 @@
+{
+  "domain": "test.local",
+  "smtp": {
+    "host": "postfix",
+    "port": 25,
+    "secure": false
+  },
+  "imap": {
+    "host": "dovecot",
+    "port": 143,
+    "secure": false
+  },
+  "accounts": [],
+  "status": "active",
+  "created": "2025-05-31T20:09:44.079Z"
+}

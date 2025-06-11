@@ -1,0 +1,7 @@
+# OpenDKIM Signing Table - Will be populated dynamically
+# Format: pattern key
+# This file will be managed by the API for each domain added
+
+# Example entries (will be auto-generated):
+# *@example.com mail._domainkey.example.com
+# *@test.org mail._domainkey.test.org

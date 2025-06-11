@@ -1,0 +1,7 @@
+# OpenDKIM Key Table - Will be populated dynamically
+# Format: selector._domainkey.domain domain:selector:keypath
+# This file will be managed by the API for each domain added
+
+# Example entries (will be auto-generated):
+# mail._domainkey.example.com example.com:mail:/etc/opendkim/keys/example.com/mail.private
+# mail._domainkey.test.org test.org:mail:/etc/opendkim/keys/test.org/mail.private

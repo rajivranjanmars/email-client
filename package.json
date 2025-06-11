@@ -1,0 +1,30 @@
+{
+  "name": "multi-domain-email-server",
+  "version": "1.0.0",
+  "description": "A generic multi-domain email server with Postfix + Dovecot + Hono + TypeScript",
+  "main": "src/server.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --hot src/server.ts",
+    "start": "bun run src/server.ts",
+    "build": "bun build src/server.ts --outdir dist",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": ["email", "postfix", "dovecot", "hono", "typescript", "multi-domain", "bun"],
+  "author": "Engineers Cradle",
+  "license": "MIT",
+  "dependencies": {
+    "hono": "^4.0.0",
+    "@hono/node-server": "^1.8.0",
+    "nodemailer": "^6.9.8",
+    "imap": "^0.8.19",
+    "pg": "^8.11.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.0.0",
+    "@types/nodemailer": "^6.4.14",
+    "@types/imap": "^0.8.40",
+    "@types/pg": "^8.10.9"
+  }
+}

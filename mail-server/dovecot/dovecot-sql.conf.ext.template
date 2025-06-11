@@ -1,0 +1,30 @@
+# Dovecot SQL Configuration Template
+# Copy this file to dovecot-sql.conf.ext and update with your database credentials
+
+driver = pgsql
+connect = host=YOUR_DB_HOST dbname=YOUR_DB_NAME user=YOUR_DB_USER password=YOUR_DB_PASSWORD
+
+# Password verification query - supports multiple password schemes
+# Must return field named 'password'
+password_query = SELECT email_accounts.email_address as user, \
+  CASE \
+    WHEN password_hash LIKE '{%}%' THEN password_hash \
+    ELSE CONCAT('{PLAIN}', password_hash) \
+  END as password \
+  FROM email_accounts \
+  INNER JOIN domains ON email_accounts.domain_id = domains.id \
+  WHERE email_accounts.email_address = '%{user}' \
+  AND email_accounts.is_active = true \
+  AND domains.status = 'active'
+
+# User information query - must return uid, gid, home
+user_query = SELECT CONCAT('/srv/vmail/', LOWER(email_accounts.email_address)) as home, \
+  5000 as uid, 5000 as gid \
+  FROM email_accounts \
+  INNER JOIN domains ON email_accounts.domain_id = domains.id \
+  WHERE email_accounts.email_address = '%{user}' \
+  AND email_accounts.is_active = true \
+  AND domains.status = 'active'
+
+# Iterate users query - for maintenance tasks
+iterate_query = SELECT email_accounts.email_address as username FROM email_accounts INNER JOIN domains ON email_accounts.domain_id = domains.id WHERE email_accounts.is_active = true AND domains.status = 'active'
