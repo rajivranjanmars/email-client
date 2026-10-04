@@ -1,7 +1,7 @@
 // Email service for SMTP/IMAP operations
 // Completely domain-agnostic with configurable connections
 
-import nodemailer from 'nodemailer';
+import nodemailer, { type Transporter } from 'nodemailer';
 import Imap from 'imap';
 import type { 
   EmailMessage, 
@@ -15,7 +15,7 @@ import type {
 import { db } from './database-service.js';
 
 export class EmailService {
-  private readonly smtpTransporters: Map<string, nodemailer.Transporter> = new Map();
+  private readonly smtpTransporters: Map<string, Transporter> = new Map();
   private readonly imapConnections: Map<string, Imap> = new Map();
 
   // Get SMTP configuration for a domain
@@ -62,7 +62,7 @@ export class EmailService {
   }
 
   // Get or create SMTP transporter for a domain
-  private async getSMTPTransporter(domain: string): Promise<nodemailer.Transporter> {
+  private async getSMTPTransporter(domain: string): Promise<Transporter> {
     if (!this.smtpTransporters.has(domain)) {
       const config = this.getSMTPConfig(domain);
       const transporterOptions: any = {

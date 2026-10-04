@@ -321,3 +321,7 @@ This will reinitialize the database with the credentials from `docker-compose.ym
 - The API server (Bun + Hono) is now accessible directly at `http://localhost:3000`
 - This simplifies development and testing of the email server functionality
 - Nginx will be re-added later with proper SSL configuration for production deployment
+
+## Author
+
+[rajivranjanmars](https://rajivranjana.in)
