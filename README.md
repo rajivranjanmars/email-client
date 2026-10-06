@@ -324,4 +324,4 @@ This will reinitialize the database with the credentials from `docker-compose.ym
 
 ## Author
 
-[rajivranjanmars](https://rajivranjana.in)
+[Rajiv Ranjan](https://rajivranjan.in)
