@@ -25,7 +25,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "hono": "^4.13.14",
+    "hono": "^4.13.17",
     "@hono/node-server": "^2.1.5",
     "nodemailer": "^10.2.1",
     "imap": "^0.8.19",
